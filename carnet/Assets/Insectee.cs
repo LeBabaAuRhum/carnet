@@ -25,16 +25,27 @@ public class Insectee : MonoBehaviour
 
     private Quaternion destination;
 
+    public int surfaceCible;
+    private Surface surfaceActuelle;
+
+    public Vector3 directionSuivie;
+
+    private bool aRetirer;//A RETIRER
+
     string layerName = "murs";  // Remplacez YourLayerName par le nom de la couche que vous souhaitez détecter
     int layerMask;
 
     // Start is called before the first frame update
     void Start()
     {
+
+        aRetirer = false;//A RETIRER
+
         layerMask  = 1 << LayerMask.NameToLayer(layerName);
         speed = 2f;
         rb = GetComponent<Rigidbody>();
         anim = GetComponent<Animator>();
+        chrono = -10f;
 
         anim.SetBool("walk", true);
         anim.SetBool("idle", false);
@@ -58,7 +69,7 @@ public class Insectee : MonoBehaviour
             {
                 Vector3 directionToSurface = hit_u.point - rb.position;
                 Vector3 desiredPosition = rb.position + directionToSurface.normalized * (hit_u.distance - 0.02f);
-                rb.MovePosition(desiredPosition);
+                rb.position = desiredPosition;
             }
         }
     }
@@ -142,6 +153,7 @@ public class Insectee : MonoBehaviour
             if(hit_f.collider.tag == "mur")
             {
                 Quaternion rotation = Quaternion.FromToRotation(transform.up, hit_f.normal);
+                    rb.position = rb.position + (transform.up * 0.075f);
                     rb.rotation = rotation * transform.rotation;
 
                 return true;
@@ -162,16 +174,17 @@ public class Insectee : MonoBehaviour
     {
         RaycastHit hit_u;
 
-        if(Physics.Raycast(origin.position, -transform.up, out hit_u, rayRange_u, layerMask))
+        if(Physics.Raycast(transform.position, -transform.up, out hit_u, rayRange_u, layerMask))
         {
-            Debug.Log(hit_u.collider.gameObject.name);
+            surfaceActuelle = hit_u.transform.gameObject.GetComponent<Surface>();
             return false;
-
         }
         else
         {
             Quaternion rotation = Quaternion.FromToRotation(transform.up, transform.forward);
+            rb.position = rb.position + (transform.forward * 0.075f) + (-transform.up * 0.075f);
             rb.rotation = rotation * transform.rotation;
+            
             return true;
         }
     }
@@ -209,34 +222,37 @@ public class Insectee : MonoBehaviour
         }
     }
 
+    bool sontParalleles(Vector3 vecteur1, Vector3 vecteur2)
+    {
+        float produitScalaire = Vector3.Dot(vecteur1.normalized, vecteur2.normalized);
+        float margeErreur = 0.99f;
+        return Mathf.Abs(produitScalaire) > margeErreur;
+    }
+
+    void DeplacementInsecteEnTrajet(Vector3 directionCible)
+    {
+        if(sontParalleles(transform.forward, directionCible))
+        {
+            rb.MovePosition(WalkForward(speed));
+        }
+        else
+        {
+            Quaternion rotationCible = Quaternion.LookRotation(directionCible, transform.up);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotationCible, Time.deltaTime * 180f);
+        }
+    }
+
     void FixedUpdate()
     {
-        /*if(Timer())
-        {
-           rb.MovePosition(WalkForward());
-           rb.MoveRotation(Oscillation()); 
-        }*/
-
-        if(Input.GetKeyDown(KeyCode.A))
-        {
-            CheckPit();
-        }
-
-        if(Input.GetKey(KeyCode.Z))
-        {
-            RotateTowardDestination(destination);
-            Debug.Log(CheckRotation(destination));
-        }
         
-
         if(CheckWalls())
         {
             if(destination != Quaternion.Euler(0,0,0))
             {
                 destination = Quaternion.Euler(0,0,0);
             }
-            rb.MovePosition(WalkForward(speed*10));
-            CheckGround();
+            //rb.position += transform.forward * 0.5f;
+            //CheckGround();
         }
         else if (CheckPit())
         {
@@ -244,31 +260,51 @@ public class Insectee : MonoBehaviour
             {
                 destination = Quaternion.Euler(0,0,0);
             }
-            rb.MovePosition(WalkForward(speed*10));
-            CheckGround();
+            //rb.position += transform.up * 0.5f;
+            //CheckGround();
 
         }
         else
         {
-            if(destination == Quaternion.Euler(0,0,0))
+            /*if(destination == Quaternion.Euler(0,0,0))
             {
+                
                 rb.MoveRotation(Oscillation());
                 if(Timer())
                 {
                     SetDestination();
-                    CheckGround();
                     return;
                 }
             }
             else
             {
+           
                 RotateTowardDestination(destination);
                 if(!CheckRotation(destination))
                 {
                     destination = Quaternion.Euler(0,0,0);
                 }
             }
-                        rb.MovePosition(WalkForward(speed));
+                    CheckGround();
+                    rb.MovePosition(WalkForward(speed));*/
+
+            CheckGround();
+
+            if(surfaceActuelle.monIndex == surfaceCible)
+            {
+                Debug.Log("ARRIVE");
+            }
+            if(Input.GetKeyDown(KeyCode.X))
+            {
+                directionSuivie = surfaceActuelle.SetDestination(surfaceCible);
+                aRetirer = true;
+                Debug.Log("Je me dirige vers " + surfaceCible + "en suivant le vecteur" + directionSuivie);
+            }
+
+            if(aRetirer)
+            {
+                DeplacementInsecteEnTrajet(directionSuivie);
+            }
    
         }
 
