@@ -8,7 +8,7 @@ public class Insectee : MonoBehaviour
     private Rigidbody rb;
     private Animator anim;
 
-    public float speed = 0.1f;
+    public float speed = 0.8f;
 
     private float rotationSpeed = 4f;
     private float rotationAmplitude = 15f;
@@ -164,13 +164,25 @@ public class Insectee : MonoBehaviour
         }
     }
 
+    //Quaternion Promenade()
+    //{
+        
+    //}
+
     void FixedUpdate()
     {
-        if(Timer())
+
+        rb.MovePosition(WalkForward());
+        rb.MoveRotation(Oscillation());
+
+        /*if(Timer())
         {
-           rb.MovePosition(WalkForward());
-           rb.MoveRotation(Oscillation()); 
+            rb.MoveRotation(Promenade());
         }
+        else
+        {
+            rb.MoveRotation(Oscillation());
+        }*/
         
 
         if(CheckWalls())
@@ -179,10 +191,10 @@ public class Insectee : MonoBehaviour
             Debug.Log("MUUUUR");
         }
 
-        if(CheckPit())
-        {
-            Debug.Log("TROUUU");
-        }
+        //§§if(CheckPit())
+        //{
+            //Debug.Log("TROUUU");
+        //}
 
         if(Input.GetKey(KeyCode.E))
         {
